@@ -14,7 +14,7 @@ epi = 0.02
 x_d = 1.0
 y_d = 1.0
 theta_d = 0
-Kp, Ka, Kb = 0.15, 0.8, -0.15
+Kp, Ka, Kb = 0.15, 0.2, -0.15
 
 x = 0
 y = 0
@@ -33,9 +33,14 @@ def lpj_control(x, y, theta):
     alpha = -theta - beta
     v = Kp*ruo
     w = Ka*alpha + Kb*beta
+    info = "ruo = {}, alpha = {}, beta = {}".format(ruo, alpha, beta)
 
-    if v < epi:
-        w = 0.5 * (theta_d - theta)
+    rospy.loginfo(info)
+    
+    # It is no need to control the angle at the destination.
+
+    # if v < epi:
+    #     w = 0.5 * (theta_d - theta)
 
     return v, w
 
@@ -49,8 +54,7 @@ def odom_cb(data):
     x = posistion.x
     y = posistion.y
 
-    _, _, theta = euler_from_quaternion(
-        [oriention.x, oriention.y, oriention.z, oriention.w])
+    _, _, theta = euler_from_quaternion([oriention.x, oriention.y, oriention.z, oriention.w])
 
     info = "(x, y, theta) = ({}, {}, {})".format(x, y, theta)
     rospy.loginfo(info)
@@ -60,8 +64,7 @@ def main():
     rospy.init_node("stabilizer")
 
     rospy.Subscriber('/odom', Odometry, odom_cb, queue_size=1)
-    velocityPublisher = rospy.Publisher(
-        '/mobile_base/commands/velocity', Twist, queue_size=1)
+    velocityPublisher = rospy.Publisher('/mobile_base/commands/velocity', Twist, queue_size=1)
 
     rate = rospy.Rate(10.0)
 
