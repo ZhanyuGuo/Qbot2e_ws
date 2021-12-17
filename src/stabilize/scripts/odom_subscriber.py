@@ -11,8 +11,7 @@ def subscriber_cb(data):
     x = posistion.x
     y = posistion.y
 
-    euler = euler_from_quaternion(
-        [oriention.x, oriention.y, oriention.z, oriention.w])
+    euler = euler_from_quaternion([oriention.x, oriention.y, oriention.z, oriention.w])
     theta = euler[2]
 
     info = "(x, y, theta) = ({}, {}, {})".format(x, y, theta)
@@ -22,7 +21,7 @@ def subscriber_cb(data):
 def main():
     rospy.init_node("odom_subscriber", anonymous=True)
 
-    rospy.Subscriber('/odom', Odometry, subscriber_cb, queue_size=1)
+    rospy.Subscriber("/odom", Odometry, subscriber_cb, queue_size=1)
     rospy.spin()
 
 

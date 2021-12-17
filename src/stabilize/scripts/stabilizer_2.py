@@ -34,12 +34,13 @@ def odom_cb(msg):
     z_o = msg.pose.pose.orientation.z
 
 
-if __name__ == '__main__':
-    rospy.init_node('stabilzer_2')
+if __name__ == "__main__":
+    rospy.init_node("stabilzer_2")
 
     velocityPublisher = rospy.Publisher(
-        '/mobile_base/commands/velocity', Twist, queue_size=1)
-    rospy.Subscriber('/odom', Odometry, odom_cb, queue_size=1)
+        "/mobile_base/commands/velocity", Twist, queue_size=1
+    )
+    rospy.Subscriber("/odom", Odometry, odom_cb, queue_size=1)
 
     rate = rospy.Rate(10.0)
 
@@ -50,8 +51,7 @@ if __name__ == '__main__':
         if yaw < 0:
             yaw = yaw + 2 * math.pi
 
-        D_err = math.sqrt(math.pow((xTarget - x), 2) +
-                          math.pow((xTarget - y), 2))
+        D_err = math.sqrt(math.pow((xTarget - x), 2) + math.pow((xTarget - y), 2))
 
         if (yTarget - y) == 0 and (xTarget - x) > 0:
             yaw_t = 0

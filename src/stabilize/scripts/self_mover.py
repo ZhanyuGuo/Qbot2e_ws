@@ -19,8 +19,7 @@ def main():
 
     rospy.init_node("self_mover", anonymous=True)
 
-    pub = rospy.Publisher(
-        '/mobile_base/commands/velocity', Twist, queue_size=1)
+    pub = rospy.Publisher("/mobile_base/commands/velocity", Twist, queue_size=1)
 
     rospy.Timer(rospy.Duration(0.1), publisher_cb)
 

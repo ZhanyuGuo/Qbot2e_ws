@@ -25,11 +25,11 @@ theta = 0
 
 def genTraj():
     t = np.linspace(0, 60, num=600)
-    w = 0.5*np.ones(t.shape)
+    w = 0.5 * np.ones(t.shape)
     r = 1.0
-    v = w*r
-    x, y = r*np.cos(w*t), r*np.sin(w*t)
-    theta = math.pi/2 + w*t
+    v = w * r
+    x, y = r * np.cos(w * t), r * np.sin(w * t)
+    theta = math.pi / 2 + w * t
 
     return x, y, theta, v, w
 
@@ -42,13 +42,13 @@ def lpj_trajectory(x, y, theta):
     v_r = v_d[k]
     w_r = w_d[k]
 
-    x_e = e_x*math.cos(theta) + e_y*math.sin(theta)
-    y_e = -e_x*math.sin(theta) + e_y*math.cos(theta)
+    x_e = e_x * math.cos(theta) + e_y * math.sin(theta)
+    y_e = -e_x * math.sin(theta) + e_y * math.cos(theta)
 
     theta_e = theta_d[k] - theta
 
-    v = v_r*math.cos(theta_e) + k2*x_e
-    w = w_r + k1*v_r*y_e + k3*math.sin(theta_e)
+    v = v_r * math.cos(theta_e) + k2 * x_e
+    w = w_r + k1 * v_r * y_e + k3 * math.sin(theta_e)
 
     k += 1
     return v, w
@@ -64,7 +64,8 @@ def odom_cb(data):
     y = posistion.y
 
     _, _, theta = euler_from_quaternion(
-        [oriention.x, oriention.y, oriention.z, oriention.w])
+        [oriention.x, oriention.y, oriention.z, oriention.w]
+    )
 
     info = "(x, y, theta) = ({}, {}, {})".format(x, y, theta)
     rospy.loginfo(info)
@@ -75,9 +76,10 @@ def main():
 
     rospy.init_node("trajectory")
 
-    rospy.Subscriber('/odom', Odometry, odom_cb, queue_size=1)
+    rospy.Subscriber("/odom", Odometry, odom_cb, queue_size=1)
     velocityPublisher = rospy.Publisher(
-        '/mobile_base/commands/velocity', Twist, queue_size=1)
+        "/mobile_base/commands/velocity", Twist, queue_size=1
+    )
 
     rate = rospy.Rate(10.0)
 
@@ -96,8 +98,8 @@ def main():
         velocityPublisher.publish(vel)
         rate.sleep()
 
-    plt.scatter(xList, yList, c='b')
-    plt.scatter(x_d, y_d, c='r')
+    plt.scatter(xList, yList, c="b")
+    plt.scatter(x_d, y_d, c="r")
     plt.show()
 
     rospy.spin()
