@@ -22,8 +22,6 @@ class Sense:
         pass
 
     def info_cb(self, data):
-
-        
         # get info only once
         self.info_sub.unregister()
         pass

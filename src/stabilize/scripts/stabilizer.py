@@ -93,7 +93,7 @@ class Stabilize:
             v, w = self.guyue_stabilize()
 
         vel = Twist()
-        vel.linear.self.x = v
+        vel.linear.x = v
         vel.angular.z = w
 
         self.vel_pub.publish(vel)
@@ -128,72 +128,3 @@ def main(args):
 
 if __name__ == "__main__":
     main(sys.argv)
-
-
-# def lpj_stabilize(self.x, self.y, theta):
-#     # if sqrt((x_d - self.x)**2 + (y_d - self.y)**2) < epi:
-#     #     v = 0
-#     #     w = 0.5 * (theta_d - theta)
-#     #     pass
-#     # else:
-
-#     ruo = sqrt((x_d - self.x) ** 2 + (y_d - self.y) ** 2)
-#     beta = -atan2(y_d - self.y, x_d - self.x)
-#     alpha = -theta - beta
-#     v = Kp * ruo
-#     w = Ka * alpha + Kb * beta
-#     info = "ruo = {}, alpha = {}, beta = {}".format(ruo, alpha, beta)
-
-#     rospy.loginfo(info)
-
-#     # It is no need to control the angle at the destination.
-
-#     # if v < epi:
-#     #     w = 0.5 * (theta_d - theta)
-
-#     return v, w
-
-
-# def odom_cb(data):
-#     global self.x, self.y, theta
-
-#     posistion = data.pose.pose.position
-#     oriention = data.pose.pose.orientation
-
-#     self.x = posistion.self.x
-#     self.y = posistion.self.y
-
-#     _, _, theta = euler_from_quaternion(
-#         [oriention.self.x, oriention.self.y, oriention.z, oriention.w]
-#     )
-
-#     info = "(self.x, self.y, theta) = ({}, {}, {})".format(self.x, self.y, theta)
-#     rospy.loginfo(info)
-
-
-# def main():
-#     rospy.init_node("stabilizer")
-
-#     rospy.Subscriber("/odom", Odometry, odom_cb, queue_size=1)
-#     velocityPublisher = rospy.Publisher(
-#         "/mobile_base/commands/velocity", Twist, queue_size=1
-#     )
-
-#     rate = rospy.Rate(10.0)
-
-#     while not rospy.is_shutdown():
-#         v, w = lpj_stabilize(self.x, self.y, theta)
-#         vel = Twist()
-#         vel.linear.self.x = v
-#         vel.angular.z = w
-#         velocityPublisher.publish(vel)
-#         rate.sleep()
-
-#     rospy.spin()
-
-
-# if __name__ == "__main__":
-#     try:
-#         main()
-#     except rospy.ROSInterruptException:
-#         pass

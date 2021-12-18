@@ -51,6 +51,8 @@ class Trajectory:
             xList.append(self.x)
             yList.append(self.y)
 
+            k += 1
+
             rate.sleep()
 
         plt.scatter(xList, yList, c="b")
