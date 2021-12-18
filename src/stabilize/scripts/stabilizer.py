@@ -1,90 +1,199 @@
 #!/usr/bin/env python
 import rospy
+import sys
+import math
 
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
-
 from tf.transformations import euler_from_quaternion
 
-from math import sqrt
-from math import atan2
-from math import pi
 
-epi = 0.02
-x_d = 1.0
-y_d = 1.0
-theta_d = 0
-Kp, Ka, Kb = 0.15, 0.2, -0.15
+class Stabilize:
+    def __init__(self, x_d=1.0, y_d=1.0, controller="lpj"):
+        controllers = ["lpj", "guyue"]
+        assert controller in controllers, "Controller not defined."
+        self.controller = controller
 
-x = 0
-y = 0
-theta = 0
+        # lpj control parameters
+        self.kp = 0.15
+        self.ka = 0.2
+        self.kb = -0.15
 
+        # guyue control parameters
+        self.kv = 0.1
+        self.kw = 0.7
 
-def lpj_control(x, y, theta):
-    # if sqrt((x_d - x)**2 + (y_d - y)**2) < epi:
-    #     v = 0
-    #     w = 0.5 * (theta_d - theta)
-    #     pass
-    # else:
+        self.x_d = x_d
+        self.y_d = y_d
 
-    ruo = sqrt((x_d - x) ** 2 + (y_d - y) ** 2)
-    beta = -atan2(y_d - y, x_d - x)
-    alpha = -theta - beta
-    v = Kp * ruo
-    w = Ka * alpha + Kb * beta
-    info = "ruo = {}, alpha = {}, beta = {}".format(ruo, alpha, beta)
+        self.x = 0
+        self.y = 0
+        self.theta = 0
 
-    rospy.loginfo(info)
+        self.odom_sub = rospy.Subscriber("/odom", Odometry, self.odom_cb, queue_size=1)
 
-    # It is no need to control the angle at the destination.
+        self.vel_pub = rospy.Publisher(
+            "/mobile_base/commands/velocity", Twist, queue_size=1
+        )
 
-    # if v < epi:
-    #     w = 0.5 * (theta_d - theta)
+        rospy.Timer(rospy.Duration(0.1), self.timer_cb)
 
-    return v, w
+    def lpj_stabilize(self):
+        ruo = math.sqrt((self.x_d - self.x) ** 2 + (self.y_d - self.y) ** 2)
+        beta = -math.atan2(self.y_d - self.y, self.x_d - self.x)
+        alpha = -self.theta - beta
 
+        v = self.kp * ruo
+        w = self.ka * alpha + self.kb * beta
 
-def odom_cb(data):
-    global x, y, theta
+        info = "ruo = {}, alpha = {}, beta = {}".format(ruo, alpha, beta)
+        rospy.loginfo(info)
 
-    posistion = data.pose.pose.position
-    oriention = data.pose.pose.orientation
+        return v, w
 
-    x = posistion.x
-    y = posistion.y
+    def guyue_stabilize(self):
+        if self.theta < 0:
+            self.theta = self.theta + 2 * math.pi
 
-    _, _, theta = euler_from_quaternion(
-        [oriention.x, oriention.y, oriention.z, oriention.w]
-    )
+        d_e = math.sqrt(
+            math.pow((self.x_d - self.x), 2) + math.pow((self.y_d - self.y), 2)
+        )
 
-    info = "(x, y, theta) = ({}, {}, {})".format(x, y, theta)
-    rospy.loginfo(info)
+        if (self.y_d - self.y) == 0 and (self.x_d - self.x) > 0:
+            theta_d = 0
+        if (self.y_d - self.y) > 0 and (self.x_d - self.x) > 0:
+            theta_d = math.atan((self.y_d - self.y) / (self.x_d - self.x))
+        if (self.y_d - self.y) > 0 and (self.x_d - self.x) == 0:
+            theta_d = 0.5 * math.pi
+        if (self.y_d - self.y) > 0 and (self.x_d - self.x) < 0:
+            theta_d = math.atan((self.y_d - self.y) / (self.x_d - self.x)) + math.pi
+        if (self.y_d - self.y) == 0 and (self.x_d - self.x) < 0:
+            theta_d = math.pi
+        if (self.y_d - self.y) < 0 and (self.x_d - self.x) < 0:
+            theta_d = math.atan((self.y_d - self.y) / (self.x_d - self.x)) + math.pi
+        if (self.y_d - self.y) < 0 and (self.x_d - self.x) == 0:
+            theta_d = 1.5 * math.pi
+        if (self.y_d - self.y) < 0 and (self.x_d - self.x) > 0:
+            theta_d = math.atan((self.y_d - self.y) / (self.x_d - self.x)) + 2 * math.pi
 
+        theta_e = theta_d - self.theta
+        if theta_e < -math.pi:
+            theta_e = theta_e + 2 * math.pi
+        if theta_e > math.pi:
+            theta_e = theta_e - 2 * math.pi
 
-def main():
-    rospy.init_node("stabilizer")
+        v = self.kv * d_e
+        w = self.kw * theta_e
+        return v, w
 
-    rospy.Subscriber("/odom", Odometry, odom_cb, queue_size=1)
-    velocityPublisher = rospy.Publisher(
-        "/mobile_base/commands/velocity", Twist, queue_size=1
-    )
+    def timer_cb(self, data):
+        if self.controller == "lpj":
+            v, w = self.lpj_stabilize()
+        elif self.controller == "guyue":
+            v, w = self.guyue_stabilize()
 
-    rate = rospy.Rate(10.0)
-
-    while not rospy.is_shutdown():
-        v, w = lpj_control(x, y, theta)
         vel = Twist()
-        vel.linear.x = v
+        vel.linear.self.x = v
         vel.angular.z = w
-        velocityPublisher.publish(vel)
-        rate.sleep()
 
-    rospy.spin()
+        self.vel_pub.publish(vel)
+
+    def odom_cb(self, data):
+        posistion = data.pose.pose.position
+        oriention = data.pose.pose.orientation
+
+        self.x = posistion.x
+        self.y = posistion.y
+
+        _, _, self.theta = euler_from_quaternion(
+            [oriention.x, oriention.y, oriention.z, oriention.w]
+        )
+
+        info = "(self.x, self.y, theta) = ({}, {}, {})".format(
+            self.x, self.y, self.theta
+        )
+        rospy.loginfo(info)
+
+    pass
+
+
+def main(args):
+    rospy.init_node("stabilize")
+    stabilize = Stabilize(1.0, 1.0, "lpj")
+    try:
+        rospy.spin()
+    except KeyboardInterrupt:
+        print("Shutting down")
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except rospy.ROSInterruptException:
-        pass
+    main(sys.argv)
+
+
+# def lpj_stabilize(self.x, self.y, theta):
+#     # if sqrt((x_d - self.x)**2 + (y_d - self.y)**2) < epi:
+#     #     v = 0
+#     #     w = 0.5 * (theta_d - theta)
+#     #     pass
+#     # else:
+
+#     ruo = sqrt((x_d - self.x) ** 2 + (y_d - self.y) ** 2)
+#     beta = -atan2(y_d - self.y, x_d - self.x)
+#     alpha = -theta - beta
+#     v = Kp * ruo
+#     w = Ka * alpha + Kb * beta
+#     info = "ruo = {}, alpha = {}, beta = {}".format(ruo, alpha, beta)
+
+#     rospy.loginfo(info)
+
+#     # It is no need to control the angle at the destination.
+
+#     # if v < epi:
+#     #     w = 0.5 * (theta_d - theta)
+
+#     return v, w
+
+
+# def odom_cb(data):
+#     global self.x, self.y, theta
+
+#     posistion = data.pose.pose.position
+#     oriention = data.pose.pose.orientation
+
+#     self.x = posistion.self.x
+#     self.y = posistion.self.y
+
+#     _, _, theta = euler_from_quaternion(
+#         [oriention.self.x, oriention.self.y, oriention.z, oriention.w]
+#     )
+
+#     info = "(self.x, self.y, theta) = ({}, {}, {})".format(self.x, self.y, theta)
+#     rospy.loginfo(info)
+
+
+# def main():
+#     rospy.init_node("stabilizer")
+
+#     rospy.Subscriber("/odom", Odometry, odom_cb, queue_size=1)
+#     velocityPublisher = rospy.Publisher(
+#         "/mobile_base/commands/velocity", Twist, queue_size=1
+#     )
+
+#     rate = rospy.Rate(10.0)
+
+#     while not rospy.is_shutdown():
+#         v, w = lpj_stabilize(self.x, self.y, theta)
+#         vel = Twist()
+#         vel.linear.self.x = v
+#         vel.angular.z = w
+#         velocityPublisher.publish(vel)
+#         rate.sleep()
+
+#     rospy.spin()
+
+
+# if __name__ == "__main__":
+#     try:
+#         main()
+#     except rospy.ROSInterruptException:
+#         pass
