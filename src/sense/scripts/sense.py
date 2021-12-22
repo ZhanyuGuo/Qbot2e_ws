@@ -9,11 +9,9 @@ from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image, CameraInfo
 from geometry_msgs.msg import Pose2D
 
-
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
 from tf.transformations import euler_from_quaternion
-
 
 import colorRecognition
 
@@ -35,11 +33,6 @@ class Sense:
             "/camera/depth/image_raw", Image, self.dep_cb, queue_size=1
         )
 
-        # self.pose_pub = rospy.Publisher("/target", Pose2D)
-
-
-
-
         self.x = 0
         self.y = 0
         self.theta = 0
@@ -54,19 +47,17 @@ class Sense:
         )
 
         rospy.Timer(rospy.Duration(0.1), self.timer_cb)
-
         pass
 
     def info_cb(self, data):
         # get info only once
         self.info_sub.unregister()
-        # TODO
+
         self.K = data.K
         self.K = np.array(self.K)
         self.K = np.reshape(self.K, (3, 3))
-        print(self.K)
-        print(type(self.K))
 
+        print(self.K)
         pass
 
     def lpj_stabilize(self):
@@ -97,7 +88,7 @@ class Sense:
             self.x, self.y, self.theta
         )
         # rospy.loginfo(info)
-    
+
     def rgb_cb(self, data):
         try:
             self.rgb_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
@@ -109,7 +100,6 @@ class Sense:
 
         # cv2.imshow("Image window", self.rgb_image)
         # cv2.waitKey(3)
-
         pass
 
     def dep_cb(self, data):
@@ -132,17 +122,12 @@ class Sense:
             # cv2.waitKey(3)
 
             # print(u, v)
-            # u, v = 320, 240
             if u == 0 and v == 0:
                 x = self.x + 0.2
                 y = self.y
-                pass
             else:
-                z = self.dep_image[v, u]
-                # print(z)
-                x, y, _ = self.getCoordinateInCamera(u, v, z/1000.0)
-                
-            # print(x, y)
+                z = self.dep_image[int(v)][int(u)]
+                x, y, _ = self.getCoordinateInWorld(u, v, z / 1000.0)
 
             self.x_d, self.y_d = x, y
 
@@ -156,22 +141,22 @@ class Sense:
             self.vel_pub.publish(vel)
 
             print("Publish success.")
-            # target = Pose2D()
-            # target.x = x
-            # target.y = y
-            # target.theta = 0
-            # self.pose_pub.publish(target)
         except:
             pass
         pass
 
-    def getCoordinateInCamera(self, u, v, z):
-        x = z*(u - self.K[0, 2]) / self.K[0, 0]
-        y = z*(v - self.K[1, 2]) / self.K[1, 1]
-        z = z
+    def getCoordinateInWorld(self, u, v, z):
+        x_c = z * (u - self.K[0, 2]) / self.K[0, 0]
+        y_c = z * (v - self.K[1, 2]) / self.K[1, 1]
+        z_c = z
 
-        x, y, z = z, -x, -y
-        return x, y, z
+        x_c, y_c, z_c = z_c, -x_c, -y_c
+
+        x_w = x_c * math.cos(self.theta) - y_c * math.sin(self.theta) + self.x
+        y_w = x_c * math.sin(self.theta) + y_c * math.cos(self.theta) + self.y
+        z_w = z
+
+        return x_w, y_w, z_w
 
     pass
 
