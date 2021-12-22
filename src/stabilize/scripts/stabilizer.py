@@ -10,7 +10,7 @@ from tf.transformations import euler_from_quaternion
 
 class Stabilize:
     def __init__(self, x_d=1.0, y_d=1.0, controller="lpj"):
-        controllers = ["lpj", "guyue"]
+        controllers = ["lpj", "guyue", "gzy"]
         assert controller in controllers, "Controller not defined."
         self.controller = controller
 
@@ -23,8 +23,15 @@ class Stabilize:
         self.kv = 0.1
         self.kw = 0.7
 
+        # gzy control parameters
+        self.k1 = 0.2
+        self.k2 = 1.0
+        self.k3 = 0.2
+        self.theta_d = 0
+
         self.x_d = x_d
         self.y_d = y_d
+        self.dmax = math.sqrt(x_d ** 2 + x_d ** 2)
 
         self.x = 0
         self.y = 0
@@ -49,6 +56,19 @@ class Stabilize:
         info = "ruo = {}, alpha = {}, beta = {}".format(ruo, alpha, beta)
         rospy.loginfo(info)
 
+        return v, w
+
+    def gzy_stabilize(self):
+        e_x = self.x_d - self.x
+        e_y = self.y_d - self.y
+        d = math.sqrt(e_x ** 2 + e_y ** 2)
+
+        beta = math.atan2(self.y_d - self.y, self.x_d - self.x)
+        alpha = beta - self.theta
+
+        v = self.k1 * d
+        lda = d / self.dmax
+        w = lda * self.k2 * alpha + (1 - lda) * self.k3 * (self.theta_d - self.theta)
         return v, w
 
     def guyue_stabilize(self):
@@ -91,6 +111,8 @@ class Stabilize:
             v, w = self.lpj_stabilize()
         elif self.controller == "guyue":
             v, w = self.guyue_stabilize()
+        elif self.controller == "gzy":
+            v, w = self.gzy_stabilize()
 
         vel = Twist()
         vel.linear.x = v

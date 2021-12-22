@@ -37,9 +37,11 @@ class Sense:
         self.y = 0
         self.theta = 0
 
-        self.kp = 0.15
-        self.ka = 0.2
+        self.kp = 0.1
+        self.ka = 0.3
         self.kb = -0.15
+
+        self.vel_old = Twist()
 
         self.odom_sub = rospy.Subscriber("/odom", Odometry, self.odom_cb, queue_size=1)
         self.vel_pub = rospy.Publisher(
@@ -59,35 +61,6 @@ class Sense:
 
         print(self.K)
         pass
-
-    def lpj_stabilize(self):
-        ruo = math.sqrt((self.x_d - self.x) ** 2 + (self.y_d - self.y) ** 2)
-        beta = -math.atan2(self.y_d - self.y, self.x_d - self.x)
-        alpha = -self.theta - beta
-
-        v = self.kp * ruo
-        w = self.ka * alpha + self.kb * beta
-
-        info = "ruo = {}, alpha = {}, beta = {}".format(ruo, alpha, beta)
-        # rospy.loginfo(info)
-
-        return v, w
-
-    def odom_cb(self, data):
-        posistion = data.pose.pose.position
-        oriention = data.pose.pose.orientation
-
-        self.x = posistion.x
-        self.y = posistion.y
-
-        _, _, self.theta = euler_from_quaternion(
-            [oriention.x, oriention.y, oriention.z, oriention.w]
-        )
-
-        info = "(self.x, self.y, theta) = ({}, {}, {})".format(
-            self.x, self.y, self.theta
-        )
-        # rospy.loginfo(info)
 
     def rgb_cb(self, data):
         try:
@@ -112,35 +85,50 @@ class Sense:
             pass
         pass
 
+    def odom_cb(self, data):
+        posistion = data.pose.pose.position
+        oriention = data.pose.pose.orientation
+
+        self.x = posistion.x
+        self.y = posistion.y
+
+        _, _, self.theta = euler_from_quaternion(
+            [oriention.x, oriention.y, oriention.z, oriention.w]
+        )
+
+        info = "(self.x, self.y, theta) = ({}, {}, {})".format(
+            self.x, self.y, self.theta
+        )
+        # rospy.loginfo(info)
+
     def timer_cb(self, data):
         try:
             frame = self.rgb_image
 
             u, v = colorRecognition.color_recog(frame)
 
-            # cv2.imshow("Image window", frame)
-            # cv2.waitKey(3)
+            cv2.imshow("Image window", frame)
+            cv2.waitKey(3)
 
-            # print(u, v)
-            if u == 0 and v == 0:
-                x = self.x + 0.2
-                y = self.y
+            if u != 0 or v != 0:
+                d = self.dep_image[int(v)][int(u)] / 1000.0
+                x, y, _ = self.getCoordinateInWorld(u, v, d)
+
+                self.x_d, self.y_d = x, y
+                print("target = ({}, {}), current = ({}, {}).".format(self.x_d, self.y_d, self.x, self.y))
+
+                v, w = self.lpj_stabilize()
+
+                vel = Twist()
+                vel.linear.x = v
+                vel.angular.z = w
+                self.vel_pub.publish(vel)
+                
+                self.vel_old.linear.x = v
+                self.vel_old.angular.z = w
             else:
-                z = self.dep_image[int(v)][int(u)]
-                x, y, _ = self.getCoordinateInWorld(u, v, z / 1000.0)
-
-            self.x_d, self.y_d = x, y
-
-            v, w = self.lpj_stabilize()
-            print(v, w)
-
-            vel = Twist()
-            vel.linear.x = v
-            vel.angular.z = w
-
-            self.vel_pub.publish(vel)
-
-            print("Publish success.")
+                self.vel_pub.publish(self.vel_old)
+                pass
         except:
             pass
         pass
@@ -157,7 +145,19 @@ class Sense:
         z_w = z
 
         return x_w, y_w, z_w
+    
+    def lpj_stabilize(self):
+        ruo = math.sqrt((self.x_d - self.x) ** 2 + (self.y_d - self.y) ** 2)
+        beta = -math.atan2(self.y_d - self.y, self.x_d - self.x)
+        alpha = -self.theta - beta
 
+        v = self.kp * ruo
+        w = self.ka * alpha + self.kb * beta
+
+        info = "ruo = {}, alpha = {}, beta = {}".format(ruo, alpha, beta)
+        # rospy.loginfo(info)
+
+        return v, w
     pass
 
 

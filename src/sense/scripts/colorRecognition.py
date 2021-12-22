@@ -19,8 +19,8 @@ upper_red = np.array([20, 255, 255])
 # lower_white = np.array([40, 0, 140])
 # upper_white = np.array([90, 30, 255])
 # 设定orange的阈值
-lower_orange = np.array([0, 150, 170])
-upper_orange = np.array([25, 230, 255])
+lower_orange = np.array([0, 135, 145])
+upper_orange = np.array([20, 220, 200])
 # 设定green的阈值 robust
 lower_green = np.array([55, 120, 100])
 upper_green = np.array([80, 200, 255])

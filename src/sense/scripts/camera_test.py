@@ -18,24 +18,26 @@ class image_converter:
         self.image_pub = rospy.Publisher("/bridge_out", Image)
 
         self.bridge = CvBridge()
-        # self.image_sub = rospy.Subscriber("/camera/rgb/image_raw", Image, self.callback)
-        self.image_sub = rospy.Subscriber(
-            "/camera/depth/image_raw", Image, self.callback
-        )
+        self.image_sub = rospy.Subscriber("/camera/rgb/image_raw", Image, self.callback)
+        # self.image_sub = rospy.Subscriber(
+        #     "/camera/depth/image_raw", Image, self.callback
+        # )
 
     def callback(self, data):
         try:
-            # cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
-            cv_image = self.bridge.imgmsg_to_cv2(data)
+            cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+            cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
+            print(cv_image[240][320])
+            # cv_image = self.bridge.imgmsg_to_cv2(data)
             # print(type(cv_image))
             # print(cv_image.shape)
 
-            cv_image = np.right_shift(cv_image, 3)
-            cv_image = np.bitwise_and(cv_image, 2047)
-            print(cv_image[240, 320] / 2048.0 * 255)
-            cv_image = cv_image * 255 / 256
-            cv_image = np.right_shift(cv_image, 2)
-            print(cv_image.shape, bin(cv_image[240, 320]), cv_image[240, 320])
+            # cv_image = np.right_shift(cv_image, 3)
+            # cv_image = np.bitwise_and(cv_image, 2047)
+            # print(cv_image[240, 320] / 2048.0 * 255)
+            # cv_image = cv_image * 255 / 256
+            # cv_image = np.right_shift(cv_image, 2)
+            # print(cv_image.shape, bin(cv_image[240, 320]), cv_image[240, 320])
             # print(cv_image[240, 320]/2048.0 * 6)
         except CvBridgeError as e:
             print(e)
@@ -49,7 +51,8 @@ class image_converter:
 
         try:
             # self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
-            self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image))
+            # self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image))
+            pass
         except CvBridgeError as e:
             print(e)
 
