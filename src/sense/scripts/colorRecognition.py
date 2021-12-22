@@ -2,16 +2,11 @@
 
 
 # from os import WCOREDUMP
-from typing import OrderedDict
+# from typing import OrderedDict
 import cv2
 import numpy as np
 
 
-# ---------------------------location---------------------------------------
-# pixel : length = 166 : 100    (px:mm)
-# roboArm origin:(40,40)
-px_len_ratio = 166 / 100
-robotOrigin = np.array([40, 40])
 
 # ---------------------------color---------------------------------------
 # 设定yellow的阈值
@@ -34,46 +29,6 @@ lower_blue = np.array([80, 100, 80])
 upper_blue = np.array([150, 255, 255])
 
 
-colorList = ["red", "yellow", "blue", "green", "orange"]
-lower_thresh = [lower_red, lower_yellow, lower_blue, lower_green, lower_orange]
-upper_thresh = [upper_red, upper_yellow, upper_blue, upper_green, upper_orange]
-
-
-def judge_color(hsv):
-    colorID = -1
-    # 根据阈值构建掩模
-    for i in range(len(colorList)):
-        mask = cv2.inRange(hsv, lower_thresh[i], upper_thresh[i])
-
-        # 膨胀腐蚀
-        mask = cv2.dilate(mask, None, iterations=10)
-        mask = cv2.erode(mask, None, iterations=10)
-
-        # 对mask检测轮廓
-        cnts = cv2.findContours(
-            mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-        )[-2]
-
-        if len(cnts) > 0:
-            c = max(cnts, key=cv2.contourArea)
-            ((x, y), radius) = cv2.minEnclosingCircle(c)
-
-            if radius > 20:
-                colorID = i
-                break
-                # cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
-                # print('radius:', radius)
-                # print('center:', x, y)
-                # return colorID
-
-    print(i, colorList[colorID])
-    return colorID
-
-
-def get_world_loc(cam_loc):
-    world_loc = (np.array(cam_loc) - robotOrigin) / px_len_ratio
-    return world_loc
-
 
 def color_recog(frame):
     # 转换到HSV
@@ -81,8 +36,7 @@ def color_recog(frame):
     cv2.circle(frame, (40, 40), 10, color=(0, 0, 255))
 
     # 根据阈值构建掩模
-    colorID = judge_color(hsv)
-    mask = cv2.inRange(hsv, lower_thresh[colorID], upper_thresh[colorID])
+    mask = cv2.inRange(hsv, lower_orange, upper_orange)
     # mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
 
     # 膨胀腐蚀
@@ -94,34 +48,35 @@ def color_recog(frame):
 
     if len(cnts) > 0:
         c = max(cnts, key=cv2.contourArea)
-        (center, radius) = cv2.minEnclosingCircle(c)
-        x, y = center
+        ((x,y), radius) = cv2.minEnclosingCircle(c)
+
         if radius > 10:
             cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
-            print("radius:", radius)
-            print("center:", center)
-            world_loc = get_world_loc([x, y])
-            print("world_loc:", world_loc)
+            #print('center:', x,y)
 
-        return colorID, center
+        return x,y
     else:
-        return 0, (0, 0)
+        return 0, (0,0)
 
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':        
 
     cap = cv2.VideoCapture(0)
 
     while 1:
-        # 获取每一帧
+         # 获取每一帧
         ret, frame = cap.read()
 
-        color, center = color_recog(frame)
-        print("color:", color)
-        print("center:", center)
+        x,y = color_recog(frame)
+        print('color:','blue')
+        print('center:',x,y)
+
+
+
 
         # 显示图像
-        cv2.imshow("frame", frame)
+        cv2.imshow('frame', frame)
         # cv2.imshow('mask', mask)
         #  cv2.imshow('res',res)
         k = cv2.waitKey(5) & 0xFF
@@ -130,3 +85,4 @@ if __name__ == "__main__":
 
     # 关闭窗口
     cv2.destroyAllWindows()
+    
