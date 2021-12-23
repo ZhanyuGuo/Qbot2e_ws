@@ -12,7 +12,7 @@ from tf.transformations import euler_from_quaternion
 
 class Trajectory:
     def __init__(self, duration, controller="lpj"):
-        controllers = ["lpj"]
+        controllers = ["lpj", "gzy2"]
         assert controller in controllers, "Controller not defined."
         self.controller = controller
 
@@ -23,6 +23,10 @@ class Trajectory:
         self.k1 = 0.3
         self.k2 = 0.5
         self.k3 = 0.7
+
+        # gzy2 control parameters
+        self.kk = 0.5
+        self.l = 0.2
 
         self.x = 0
         self.y = 0
@@ -41,7 +45,8 @@ class Trajectory:
 
         k = 0
         while k < self.N:
-            v, w = self.lpj_trajectory(k)
+            # v, w = self.lpj_trajectory(k)
+            v, w = self.gzy_trajectory_2(k)
 
             vel = Twist()
             vel.linear.x = v
@@ -61,7 +66,7 @@ class Trajectory:
 
     def genTraj(self):
         t = np.linspace(0, self.duration, num=self.N)
-        w = 0.5 * np.ones(t.shape)
+        w = 0.3 * np.ones(t.shape)
         r = 1.0
         v = w * r
         x, y = r * np.cos(w * t), r * np.sin(w * t)
@@ -85,6 +90,23 @@ class Trajectory:
 
         return v, w
 
+    def gzy_trajectory_2(self, k):
+        e_x = self.x_d[k] - self.x
+        e_y = self.y_d[k] - self.y
+        u_x = self.kk * e_x
+        u_y = self.kk * e_y
+        A = np.array(
+            [
+                [np.cos(self.theta), -self.l * np.sin(self.theta)],
+                [np.sin(self.theta),  self.l * np.cos(self.theta)],
+            ]
+        )
+        U = np.array([[u_x], [u_y]])
+        v_w = np.linalg.solve(A, U)
+        v = v_w[0]
+        w = v_w[1]
+        return v, w
+
     def odom_cb(self, data):
         posistion = data.pose.pose.position
         oriention = data.pose.pose.orientation
@@ -106,7 +128,7 @@ class Trajectory:
 
 def main(args):
     rospy.init_node("trajectroy")
-    stabilize = Trajectory(60, "lpj")
+    stabilize = Trajectory(60, "gzy2")
     try:
         rospy.spin()
     except KeyboardInterrupt:

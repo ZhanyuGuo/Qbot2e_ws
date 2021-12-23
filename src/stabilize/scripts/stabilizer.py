@@ -7,10 +7,12 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
 from tf.transformations import euler_from_quaternion
 
+import numpy as np
+
 
 class Stabilize:
     def __init__(self, x_d=1.0, y_d=1.0, controller="lpj"):
-        controllers = ["lpj", "guyue", "gzy"]
+        controllers = ["lpj", "guyue", "gzy", "gzy2"]
         assert controller in controllers, "Controller not defined."
         self.controller = controller
 
@@ -28,6 +30,10 @@ class Stabilize:
         self.k2 = 1.0
         self.k3 = 0.2
         self.theta_d = 0
+
+        # gzy2 control parameters
+        self.kk = 0.2
+        self.l = 0.2
 
         self.x_d = x_d
         self.y_d = y_d
@@ -54,7 +60,7 @@ class Stabilize:
         w = self.ka * alpha + self.kb * beta
 
         info = "ruo = {}, alpha = {}, beta = {}".format(ruo, alpha, beta)
-        rospy.loginfo(info)
+        # rospy.loginfo(info)
 
         return v, w
 
@@ -69,6 +75,23 @@ class Stabilize:
         v = self.k1 * d
         lda = d / self.dmax
         w = lda * self.k2 * alpha + (1 - lda) * self.k3 * (self.theta_d - self.theta)
+        return v, w
+
+    def gzy_stabilize_2(self):
+        e_x = self.x_d - self.x
+        e_y = self.y_d - self.y
+        u_x = self.kk * e_x
+        u_y = self.kk * e_y
+        A = np.array(
+            [
+                [np.cos(self.theta), -self.l * np.sin(self.theta)],
+                [np.sin(self.theta),  self.l * np.cos(self.theta)],
+            ]
+        )
+        U = np.array([[u_x], [u_y]])
+        v_w = np.linalg.solve(A, U)
+        v = v_w[0]
+        w = v_w[1]
         return v, w
 
     def guyue_stabilize(self):
@@ -113,6 +136,8 @@ class Stabilize:
             v, w = self.guyue_stabilize()
         elif self.controller == "gzy":
             v, w = self.gzy_stabilize()
+        elif self.controller == "gzy2":
+            v, w = self.gzy_stabilize_2()
 
         vel = Twist()
         vel.linear.x = v
@@ -141,7 +166,7 @@ class Stabilize:
 
 def main(args):
     rospy.init_node("stabilize")
-    stabilize = Stabilize(1.0, 1.0, "lpj")
+    stabilize = Stabilize(1.0, 1.0, "gzy2")
     try:
         rospy.spin()
     except KeyboardInterrupt:

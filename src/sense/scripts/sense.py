@@ -14,6 +14,7 @@ from geometry_msgs.msg import Twist
 from tf.transformations import euler_from_quaternion
 
 import colorRecognition
+import QRcodeRecognition
 
 
 class Sense:
@@ -106,6 +107,7 @@ class Sense:
             frame = self.rgb_image
 
             u, v = colorRecognition.color_recog(frame)
+            # u, v = QRcodeRecognition.qrcode_recog(frame)
 
             cv2.imshow("Image window", frame)
             cv2.waitKey(3)
