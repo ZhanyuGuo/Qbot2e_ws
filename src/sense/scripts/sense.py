@@ -38,9 +38,14 @@ class Sense:
         self.y = 0
         self.theta = 0
 
+        # lpj control parameters
         self.kp = 0.1
         self.ka = 0.3
         self.kb = -0.15
+
+        # gzy2 control parameters
+        self.kk = 0.1
+        self.l = 0.2
 
         self.vel_old = Twist()
 
@@ -106,8 +111,8 @@ class Sense:
         try:
             frame = self.rgb_image
 
-            u, v = colorRecognition.color_recog(frame)
-            # u, v = QRcodeRecognition.qrcode_recog(frame)
+            # u, v = colorRecognition.color_recog(frame)
+            u, v = QRcodeRecognition.qrcode_recog(frame)
 
             cv2.imshow("Image window", frame)
             cv2.waitKey(3)
@@ -119,7 +124,8 @@ class Sense:
                 self.x_d, self.y_d = x, y
                 print("target = ({}, {}), current = ({}, {}).".format(self.x_d, self.y_d, self.x, self.y))
 
-                v, w = self.lpj_stabilize()
+                # v, w = self.lpj_stabilize()
+                v, w = self.gzy_stabilize_2()
 
                 vel = Twist()
                 vel.linear.x = v
@@ -131,7 +137,8 @@ class Sense:
             else:
                 self.vel_pub.publish(self.vel_old)
                 pass
-        except:
+        except Exception as e:
+            print(e)
             pass
         pass
 
@@ -160,6 +167,24 @@ class Sense:
         # rospy.loginfo(info)
 
         return v, w
+
+    def gzy_stabilize_2(self):
+        e_x = self.x_d - self.x
+        e_y = self.y_d - self.y
+        u_x = self.kk * e_x
+        u_y = self.kk * e_y
+        A = np.array(
+            [
+                [np.cos(self.theta), -self.l * np.sin(self.theta)],
+                [np.sin(self.theta),  self.l * np.cos(self.theta)],
+            ]
+        )
+        U = np.array([[u_x], [u_y]])
+        v_w = np.linalg.solve(A, U)
+        v = v_w[0]
+        w = v_w[1]
+        return v, w
+    
     pass
 
 

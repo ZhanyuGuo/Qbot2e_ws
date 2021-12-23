@@ -3,8 +3,9 @@ import cv2 as cv
 from pyzbar import pyzbar
 
 
-def decodeDisplay(image):
-    barcodes = pyzbar.decode(image)
+def decodeDisplay(gray, image):
+    barcodes = pyzbar.decode(gray)
+    u, v = 0, 0
     for barcode in barcodes:
         (x, y, w, h) = barcode.rect
         cv.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
@@ -23,10 +24,10 @@ def decodeDisplay(image):
         )
         # # 向终端打印条形码数据和条形码类型
         # print("[INFO] Found {} barcode: {}".format(barcodeType, barcodeData))
-    return image, u, v
+    return u, v
 
 
 def qrcode_recog(frame):
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-    image, u, v = decodeDisplay(frame)
+    u, v = decodeDisplay(gray, frame)
     return u, v
