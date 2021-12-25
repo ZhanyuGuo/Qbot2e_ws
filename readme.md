@@ -16,14 +16,14 @@ Zhanyu Guo, Peijiang Liu, Yetong Qin.
 
 ## Packages
 
-### stabilize
+### stabilization
 
 Solving the stabilize problem of a robot about how to stabilize to one specified point.
 
-### trajectory
+### tracking
 
-Solving the trajectory problem of a robot about how to follow a trajectory.
+Solving the tracking problem of a robot about how to follow a trajectory.
 
-### sense
+### perception
 
 Using Kinect to get RGBD image, and doing some transformations.

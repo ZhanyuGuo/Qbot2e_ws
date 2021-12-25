@@ -17,7 +17,7 @@ import colorRecognition
 import QRcodeRecognition
 
 
-class Sense:
+class Perception:
     def __init__(self):
         self.bridge = CvBridge()
         self.rgb_image = None
@@ -122,7 +122,11 @@ class Sense:
                 x, y, _ = self.getCoordinateInWorld(u, v, d)
 
                 self.x_d, self.y_d = x, y
-                print("target = ({}, {}), current = ({}, {}).".format(self.x_d, self.y_d, self.x, self.y))
+                print(
+                    "target = ({}, {}), current = ({}, {}).".format(
+                        self.x_d, self.y_d, self.x, self.y
+                    )
+                )
 
                 # v, w = self.lpj_stabilize()
                 v, w = self.gzy_stabilize_2()
@@ -131,7 +135,7 @@ class Sense:
                 vel.linear.x = v
                 vel.angular.z = w
                 self.vel_pub.publish(vel)
-                
+
                 self.vel_old.linear.x = v
                 self.vel_old.angular.z = w
             else:
@@ -154,7 +158,7 @@ class Sense:
         z_w = z
 
         return x_w, y_w, z_w
-    
+
     def lpj_stabilize(self):
         ruo = math.sqrt((self.x_d - self.x) ** 2 + (self.y_d - self.y) ** 2)
         beta = -math.atan2(self.y_d - self.y, self.x_d - self.x)
@@ -176,7 +180,7 @@ class Sense:
         A = np.array(
             [
                 [np.cos(self.theta), -self.l * np.sin(self.theta)],
-                [np.sin(self.theta),  self.l * np.cos(self.theta)],
+                [np.sin(self.theta), self.l * np.cos(self.theta)],
             ]
         )
         U = np.array([[u_x], [u_y]])
@@ -184,13 +188,13 @@ class Sense:
         v = v_w[0]
         w = v_w[1]
         return v, w
-    
+
     pass
 
 
 def main(args):
-    rospy.init_node("sense")
-    sense = Sense()
+    rospy.init_node("perception")
+    perception = Perception()
     try:
         rospy.spin()
     except KeyboardInterrupt:

@@ -10,7 +10,7 @@ from tf.transformations import euler_from_quaternion
 import numpy as np
 
 
-class Stabilize:
+class Stabilization:
     def __init__(self, x_d=1.0, y_d=1.0, controller="lpj"):
         controllers = ["lpj", "guyue", "gzy", "gzy2"]
         assert controller in controllers, "Controller not defined."
@@ -30,6 +30,7 @@ class Stabilize:
         self.k2 = 1.0
         self.k3 = 0.2
         self.theta_d = 0
+        self.dmax = math.sqrt(x_d ** 2 + x_d ** 2)
 
         # gzy2 control parameters
         self.kk = 0.2
@@ -37,7 +38,6 @@ class Stabilize:
 
         self.x_d = x_d
         self.y_d = y_d
-        self.dmax = math.sqrt(x_d ** 2 + x_d ** 2)
 
         self.x = 0
         self.y = 0
@@ -85,7 +85,7 @@ class Stabilize:
         A = np.array(
             [
                 [np.cos(self.theta), -self.l * np.sin(self.theta)],
-                [np.sin(self.theta),  self.l * np.cos(self.theta)],
+                [np.sin(self.theta), self.l * np.cos(self.theta)],
             ]
         )
         U = np.array([[u_x], [u_y]])
@@ -165,8 +165,8 @@ class Stabilize:
 
 
 def main(args):
-    rospy.init_node("stabilize")
-    stabilize = Stabilize(1.0, 1.0, "gzy2")
+    rospy.init_node("stabilization")
+    stabilization = Stabilization(0.0, -1.0, "lpj")
     try:
         rospy.spin()
     except KeyboardInterrupt:

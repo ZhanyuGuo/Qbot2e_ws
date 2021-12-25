@@ -10,7 +10,7 @@ from geometry_msgs.msg import Twist
 from tf.transformations import euler_from_quaternion
 
 
-class Trajectory:
+class Tracking:
     def __init__(self, duration, controller="lpj"):
         controllers = ["lpj", "gzy2"]
         assert controller in controllers, "Controller not defined."
@@ -98,7 +98,7 @@ class Trajectory:
         A = np.array(
             [
                 [np.cos(self.theta), -self.l * np.sin(self.theta)],
-                [np.sin(self.theta),  self.l * np.cos(self.theta)],
+                [np.sin(self.theta), self.l * np.cos(self.theta)],
             ]
         )
         U = np.array([[u_x], [u_y]])
@@ -127,8 +127,8 @@ class Trajectory:
 
 
 def main(args):
-    rospy.init_node("trajectroy")
-    stabilize = Trajectory(60, "gzy2")
+    rospy.init_node("tracking")
+    tracking = Tracking(60, "gzy2")
     try:
         rospy.spin()
     except KeyboardInterrupt:
