@@ -48,7 +48,7 @@ def chooseBestPoint(N, cost_err, d_l_err, fitness, bacterias):
     best_point = np.zeros((2, 1))
     for i in range(N):
         k = np.argmax(fitness)
-        if cost_err[0, k] < 0.1:
+        if cost_err[0, k] < 0.35:
             if d_l_err[0, k] < 0:
                 best_point[0, 0] = bacterias[0, k]
                 best_point[1, 0] = bacterias[1, k]

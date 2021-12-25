@@ -12,7 +12,7 @@ from tf.transformations import euler_from_quaternion
 
 class Tracking:
     def __init__(self, duration, controller="lpj"):
-        controllers = ["lpj", "gzy2"]
+        controllers = ["lpj", "gzy"]
         assert controller in controllers, "Controller not defined."
         self.controller = controller
 
@@ -24,7 +24,7 @@ class Tracking:
         self.k2 = 0.5
         self.k3 = 0.7
 
-        # gzy2 control parameters
+        # gzy control parameters
         self.kk = 0.5
         self.l = 0.2
 
@@ -38,15 +38,28 @@ class Tracking:
             "/mobile_base/commands/velocity", Twist, queue_size=1
         )
 
-        rate = rospy.Rate(10.0)
         self.x_d, self.y_d, self.theta_d, self.v_d, self.w_d = self.genTraj()
         xList = []
         yList = []
 
         k = 0
+        rate = rospy.Rate(10.0)
         while k < self.N:
-            # v, w = self.lpj_trajectory(k)
-            v, w = self.gzy_trajectory_2(k)
+            if self.controller == "lpj":
+                v, w = self.lpj_tracking(
+                    self.x,
+                    self.y,
+                    self.theta,
+                    self.x_d[k],
+                    self.y_d[k],
+                    self.theta_d[k],
+                    self.v_d[k],
+                    self.w_d[k],
+                )
+            elif self.controller == "gzy":
+                v, w = self.gzy_tracking(
+                    self.x, self.y, self.theta, self.x_d[k], self.y_d[k]
+                )
 
             vel = Twist()
             vel.linear.x = v
@@ -57,7 +70,6 @@ class Tracking:
             yList.append(self.y)
 
             k += 1
-
             rate.sleep()
 
         plt.scatter(xList, yList, c="b")
@@ -74,37 +86,36 @@ class Tracking:
 
         return x, y, theta, v, w
 
-    def lpj_trajectory(self, k):
-        e_x = self.x_d[k] - self.x
-        e_y = self.y_d[k] - self.y
-        v_r = self.v_d[k]
-        w_r = self.w_d[k]
+    def lpj_tracking(self, x, y, theta, x_d, y_d, theta_d, v_d, w_d):
+        e_x = x_d - x
+        e_y = y_d - y
 
-        x_e = e_x * math.cos(self.theta) + e_y * math.sin(self.theta)
-        y_e = -e_x * math.sin(self.theta) + e_y * math.cos(self.theta)
+        x_e = e_x * math.cos(theta) + e_y * math.sin(theta)
+        y_e = -e_x * math.sin(theta) + e_y * math.cos(theta)
 
-        theta_e = self.theta_d[k] - self.theta
+        theta_e = theta_d - theta
 
-        v = v_r * math.cos(theta_e) + self.k2 * x_e
-        w = w_r + self.k1 * v_r * y_e + self.k3 * math.sin(theta_e)
+        v = v_d * math.cos(theta_e) + self.k2 * x_e
+        w = w_d + self.k1 * v_d * y_e + self.k3 * math.sin(theta_e)
 
         return v, w
 
-    def gzy_trajectory_2(self, k):
-        e_x = self.x_d[k] - self.x
-        e_y = self.y_d[k] - self.y
+    def gzy_tracking(self, x, y, theta, x_d, y_d):
+        e_x = x_d - x
+        e_y = y_d - y
         u_x = self.kk * e_x
         u_y = self.kk * e_y
         A = np.array(
             [
-                [np.cos(self.theta), -self.l * np.sin(self.theta)],
-                [np.sin(self.theta), self.l * np.cos(self.theta)],
+                [np.cos(theta), -self.l * np.sin(theta)],
+                [np.sin(theta), self.l * np.cos(theta)],
             ]
         )
         U = np.array([[u_x], [u_y]])
         v_w = np.linalg.solve(A, U)
         v = v_w[0]
         w = v_w[1]
+        
         return v, w
 
     def odom_cb(self, data):
@@ -127,8 +138,10 @@ class Tracking:
 
 
 def main(args):
-    rospy.init_node("tracking")
-    tracking = Tracking(60, "gzy2")
+    rospy.init_node("tracking_demo")
+
+    tracking = Tracking(20, "gzy")
+
     try:
         rospy.spin()
     except KeyboardInterrupt:

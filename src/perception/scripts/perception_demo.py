@@ -18,7 +18,11 @@ import QRcodeRecognition
 
 
 class Perception:
-    def __init__(self):
+    def __init__(self, controller="lpj"):
+        controllers = ["lpj", "gzy2"]
+        assert controller in controllers, "Controller not defined."
+        self.controller = controller
+
         self.bridge = CvBridge()
         self.rgb_image = None
         self.dep_image = None
@@ -72,10 +76,8 @@ class Perception:
         try:
             self.rgb_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
             # print("rgb", self.rgb_image.shape)
-            pass
         except CvBridgeError as e:
             print(e)
-            pass
 
         # cv2.imshow("Image window", self.rgb_image)
         # cv2.waitKey(3)
@@ -85,10 +87,8 @@ class Perception:
         try:
             self.dep_image = self.bridge.imgmsg_to_cv2(data)
             # print("dep", self.dep_image.shape)
-            pass
         except CvBridgeError as e:
             print(e)
-            pass
         pass
 
     def odom_cb(self, data):
@@ -128,8 +128,14 @@ class Perception:
                     )
                 )
 
-                # v, w = self.lpj_stabilize()
-                v, w = self.gzy_stabilize_2()
+                if self.controller == "lpj":
+                    v, w = self.lpj_stabilization(
+                        self.x, self.y, self.theta, self.x_d, self.y_d
+                    )
+                elif self.controller == "gzy2":
+                    v, w = self.gzy_stabilization_2(
+                        self.x, self.y, self.theta, self.x_d, self.y_d
+                    )
 
                 vel = Twist()
                 vel.linear.x = v
@@ -140,10 +146,8 @@ class Perception:
                 self.vel_old.angular.z = w
             else:
                 self.vel_pub.publish(self.vel_old)
-                pass
         except Exception as e:
             print(e)
-            pass
         pass
 
     def getCoordinateInWorld(self, u, v, z):
@@ -159,42 +163,45 @@ class Perception:
 
         return x_w, y_w, z_w
 
-    def lpj_stabilize(self):
-        ruo = math.sqrt((self.x_d - self.x) ** 2 + (self.y_d - self.y) ** 2)
-        beta = -math.atan2(self.y_d - self.y, self.x_d - self.x)
-        alpha = -self.theta - beta
+    def lpj_stabilization(self, x, y, theta, x_d, y_d):
+        ruo = math.sqrt((x_d - x) ** 2 + (y_d - y) ** 2)
+        beta = -math.atan2(y_d - y, x_d - x)
+        alpha = -theta - beta
 
         v = self.kp * ruo
         w = self.ka * alpha + self.kb * beta
 
-        info = "ruo = {}, alpha = {}, beta = {}".format(ruo, alpha, beta)
+        # info = "ruo = {}, alpha = {}, beta = {}".format(ruo, alpha, beta)
         # rospy.loginfo(info)
 
         return v, w
 
-    def gzy_stabilize_2(self):
-        e_x = self.x_d - self.x
-        e_y = self.y_d - self.y
+    def gzy_stabilization_2(self, x, y, theta, x_d, y_d):
+        e_x = x_d - x
+        e_y = y_d - y
         u_x = self.kk * e_x
         u_y = self.kk * e_y
         A = np.array(
             [
-                [np.cos(self.theta), -self.l * np.sin(self.theta)],
-                [np.sin(self.theta), self.l * np.cos(self.theta)],
+                [np.cos(theta), -self.l * np.sin(theta)],
+                [np.sin(theta), self.l * np.cos(theta)],
             ]
         )
         U = np.array([[u_x], [u_y]])
         v_w = np.linalg.solve(A, U)
         v = v_w[0]
         w = v_w[1]
+
         return v, w
 
     pass
 
 
 def main(args):
-    rospy.init_node("perception")
-    perception = Perception()
+    rospy.init_node("perception_demo")
+
+    perception = Perception("gzy2")
+
     try:
         rospy.spin()
     except KeyboardInterrupt:
