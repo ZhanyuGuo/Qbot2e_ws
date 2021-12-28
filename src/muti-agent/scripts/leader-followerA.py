@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from matplotlib.pyplot import xcorr
 import rospy
 import sys
 
@@ -38,13 +39,17 @@ class Follower:
         self.y = 0
         self.theta = 0
 
+        # for point choosing
+        self.x_last = 0
+        self.y_last = 0
+
         self.x_d = 0
         self.y_d = 0
         self.theta_d = 0
 
         # gzy2 control parameters
         self.kk = 0.5
-        self.l = 0.2
+        self.l = 0.175
 
         # self.x_b = 2.24
         # self.y_b = 1.12 - 2.24
@@ -65,7 +70,7 @@ class Follower:
             "/followerA/mobile_base/commands/velocity", Twist, queue_size=1
         )
 
-        rospy.Timer(rospy.Duration(0.1), self.timer_cb)
+        rospy.Timer(rospy.Duration(0.2), self.timer_cb)
         pass
 
     def gzy_stabilization_2(self, x, y, theta, x_d, y_d):
@@ -95,7 +100,11 @@ class Follower:
             [self.x_o, self.x_b],
             [self.y_o, self.y_b],
             60,
+            self.x_last,
+            self.y_last,
         )
+        self.x_last = self.x
+        self.y_last = self.y
 
         # v, w = self.gzy_stabilize_2()
         v, w = self.gzy_stabilization_2(self.x, self.y, self.theta, self.x_d, self.y_d)

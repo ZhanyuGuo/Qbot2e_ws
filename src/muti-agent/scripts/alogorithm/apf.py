@@ -41,18 +41,26 @@ def genPoints(N, x, y):
     return points
 
 
-def chooseBestPoint(N, cost_err, d_l_err, fitness, bacterias):
+def chooseBestPoint(N, cost_err, d_l_err, fitness, bacterias, x, y, x_last, y_last):
     """
     @return: 2x1 np.array
     """
     best_point = np.zeros((2, 1))
+    last_vector = [x - x_last, y - y_last]
     for i in range(N):
         k = np.argmax(fitness)
-        if cost_err[0, k] < 0.35:
-            if d_l_err[0, k] < 0:
-                best_point[0, 0] = bacterias[0, k]
-                best_point[1, 0] = bacterias[1, k]
-                break
+        new_vector = [bacterias[0, k] - x, bacterias[1, k] - y]
+        dot = last_vector[0] * new_vector[0] + last_vector[1] * new_vector[1]
+        if (x_last == 0 and y_last == 0) or dot >= 0:
+            if cost_err[0, k] < 0.35:
+                if d_l_err[0, k] < 0:
+                    best_point[0, 0] = bacterias[0, k]
+                    best_point[1, 0] = bacterias[1, k]
+                    break
+                else:
+                    fitness[0, k] = 0
+                    pass
+                pass
             else:
                 fitness[0, k] = 0
                 pass
@@ -61,10 +69,14 @@ def chooseBestPoint(N, cost_err, d_l_err, fitness, bacterias):
             fitness[0, k] = 0
             pass
         pass
+    else:
+        best_point[0, 0] = x
+        best_point[1, 0] = y
+
     return best_point
 
 
-def apf(x, y, x_l, y_l, x_o, y_o, N):
+def apf(x, y, x_l, y_l, x_o, y_o, N, x_last, y_last):
     current_cost = calcCost(x, y, x_l, y_l, x_o, y_o)
     d_l = calcDistance(x, y, x_l, y_l)
     bacterias = genPoints(N, x, y)
@@ -87,7 +99,9 @@ def apf(x, y, x_l, y_l, x_o, y_o, N):
         fitness[0, i] = -d_l_err[0, i]
         pass
 
-    best_bacteria = chooseBestPoint(N, cost_err, d_l_err, fitness, bacterias)
+    best_bacteria = chooseBestPoint(
+        N, cost_err, d_l_err, fitness, bacterias, x, y, x_last, y_last
+    )
 
     if d_l > 0.2:
         x_d, y_d = best_bacteria[0, 0], best_bacteria[1, 0]
