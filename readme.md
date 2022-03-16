@@ -26,4 +26,4 @@ Solving the tracking problem of a robot about how to follow a trajectory.
 
 ### perception
 
-Using Kinect to get RGBD image, and doing some transformations.
+Using Kinect to get RGBD image, and doing some transformations.z
