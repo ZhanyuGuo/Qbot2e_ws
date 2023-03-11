@@ -1,5 +1,4 @@
 # Quanser_UVS
-
 ## Contributors
 Zhanyu Guo, Peijiang Liu, Yetong Qin.
 
@@ -13,7 +12,6 @@ Zhanyu Guo, Peijiang Liu, Yetong Qin.
 7. vision opencv.
 
 ## Packages
-
 ### stabilization
 Solving the stabilize problem of a robot about how to stabilize to one specified point.
 
