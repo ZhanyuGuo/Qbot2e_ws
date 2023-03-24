@@ -9,7 +9,7 @@ def calcDistance(x1, y1, x2, y2):
 
 
 def calcCost(x, y, x_l, y_l, x_o, y_o):
-    a_o = 1
+    a_o = 2
     u_o = 4
     a_l = 1
     u_l = 4

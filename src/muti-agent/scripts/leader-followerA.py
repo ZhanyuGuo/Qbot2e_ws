@@ -25,6 +25,9 @@ class Follower:
 
         self.g_x_b = 2.24
         self.g_y_b = 1.12
+
+        self.g_x_b1 = 3.92
+        self.g_y_b1 = 1.12
         # end of positon in global
 
         self.x_o = 0
@@ -56,19 +59,14 @@ class Follower:
         self.x_b = self.g_x_b - self.g_x
         self.y_b = self.g_y_b - self.g_y
 
-        self.followerA_odom_sub = rospy.Subscriber(
-            "/followerA/odom", Odometry, self.followerA_odom_cb, queue_size=1
-        )
-        self.followerB_odom_sub = rospy.Subscriber(
-            "/followerB/odom", Odometry, self.followerB_odom_cb, queue_size=1
-        )
-        self.leader_odom_sub = rospy.Subscriber(
-            "/leader/odom", Odometry, self.leader_odom_cb, queue_size=1
-        )
+        self.x_b1 = self.g_x_b1 - self.g_x
+        self.y_b1 = self.g_y_b1 - self.g_y
 
-        self.vel_pub = rospy.Publisher(
-            "/followerA/mobile_base/commands/velocity", Twist, queue_size=1
-        )
+        self.followerA_odom_sub = rospy.Subscriber("/followerA/odom", Odometry, self.followerA_odom_cb, queue_size=1)
+        self.followerB_odom_sub = rospy.Subscriber("/followerB/odom", Odometry, self.followerB_odom_cb, queue_size=1)
+        self.leader_odom_sub = rospy.Subscriber("/leader/odom", Odometry, self.leader_odom_cb, queue_size=1)
+
+        self.vel_pub = rospy.Publisher("/followerA/mobile_base/commands/velocity", Twist, queue_size=1)
 
         rospy.Timer(rospy.Duration(0.2), self.timer_cb)
         pass
@@ -97,8 +95,8 @@ class Follower:
             self.y,
             self.x_l,
             self.y_l,
-            [self.x_o, self.x_b],
-            [self.y_o, self.y_b],
+            [self.x_o, self.x_b, self.x_b1],
+            [self.y_o, self.y_b, self.y_b1],
             60,
             self.x_last,
             self.y_last,
@@ -123,13 +121,9 @@ class Follower:
         self.x = posistion.x
         self.y = posistion.y
 
-        _, _, self.theta = euler_from_quaternion(
-            [oriention.x, oriention.y, oriention.z, oriention.w]
-        )
+        _, _, self.theta = euler_from_quaternion([oriention.x, oriention.y, oriention.z, oriention.w])
 
-        info = "(self.x, self.y, theta) = ({}, {}, {})".format(
-            self.x, self.y, self.theta
-        )
+        info = "(self.x, self.y, theta) = ({}, {}, {})".format(self.x, self.y, self.theta)
         rospy.loginfo(info)
         pass
 
@@ -140,9 +134,7 @@ class Follower:
         self.x_o = posistion.x + self.g_x_o - self.g_x
         self.y_o = posistion.y + self.g_y_o - self.g_y
 
-        _, _, self.theta_o = euler_from_quaternion(
-            [oriention.x, oriention.y, oriention.z, oriention.w]
-        )
+        _, _, self.theta_o = euler_from_quaternion([oriention.x, oriention.y, oriention.z, oriention.w])
 
         # info = "(self.x, self.y, theta) = ({}, {}, {})".format(
         #     self.x_o, self.y_o, self.theta_o
@@ -157,9 +149,7 @@ class Follower:
         self.x_l = posistion.x + self.g_x_l - self.g_x
         self.y_l = posistion.y + self.g_y_l - self.g_y
 
-        _, _, self.theta_l = euler_from_quaternion(
-            [oriention.x, oriention.y, oriention.z, oriention.w]
-        )
+        _, _, self.theta_l = euler_from_quaternion([oriention.x, oriention.y, oriention.z, oriention.w])
 
         # info = "(self.x, self.y, theta) = ({}, {}, {})".format(
         #     self.x_l, self.y_l, self.theta_d
