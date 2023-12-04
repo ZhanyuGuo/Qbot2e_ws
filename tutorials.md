@@ -101,3 +101,14 @@ roslaunch kobuki_node minimal.launch
 # In local terminal
 rosrun stabilization stabilization_demo.py
 ```
+
+## 系统克隆
+使用[Win32DiskImager](https://sourceforge.net/projects/win32diskimager/)进行读取和写入, [PiShrink](https://github.com/Drewsif/PiShrink)来压缩镜像.
+
+1. Win32DiskImager读取SD卡到空白镜像中(命名为`*.img`).
+
+2. 使用PiShrink压缩, 具体指令见其readme. (实测效果不是很明显, 从15G缩小到12G, 可以不浪费这个时间)
+
+3. Win32DiskImager写入SD卡.
+   
+4. 更改系统变量.
