@@ -2,11 +2,6 @@
 ## 环境准备
 安装[Ubuntu](https://blog.csdn.net/FRIGIDWINTER/article/details/122888036)和[ROS](http://wiki.ros.org/cn/ROS/Installation).
 
-## 网络配置
-- 连接实验室WiFi，名称: `IVCM-LAB`, 密码: `IVCM123123`.
-- 登陆路由器地址: `10.1.1.1`.
-- 开启一个Qbot, 查看得到其IP地址.
-
 ## 下载代码
 ```bash
 # Download the code
@@ -27,6 +22,11 @@ source ~/.bashrc # or reload the teminal
 # Check
 echo $ROS_PACKAGE_PATH  # Qbot2e_ws is among them.
 ```
+
+## 网络配置
+- 连接实验室WiFi，名称: `IVCM-LAB`, 密码: `IVCM123123`.
+- 登陆路由器地址: `10.1.1.1`.
+- 开启一个Qbot, 查看得到其IP地址.
 
 ## 运行环境
 ### 远程连接

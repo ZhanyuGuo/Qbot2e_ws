@@ -29,8 +29,7 @@ class Stabilization:
         self.k1 = 0.2
         self.k2 = 1.0
         self.k3 = 0.2
-        self.theta_d = 0
-        self.dmax = math.sqrt(x_d ** 2 + x_d ** 2)
+        self.dmax = math.sqrt(x_d**2 + x_d**2)
 
         # gzy2 control parameters
         self.kk = 0.2
@@ -38,16 +37,14 @@ class Stabilization:
 
         self.x_d = x_d
         self.y_d = y_d
+        self.theta_d = 0
 
         self.x = 0
         self.y = 0
         self.theta = 0
 
         self.odom_sub = rospy.Subscriber("/odom", Odometry, self.odom_cb, queue_size=1)
-
-        self.vel_pub = rospy.Publisher(
-            "/mobile_base/commands/velocity", Twist, queue_size=1
-        )
+        self.vel_pub = rospy.Publisher("/mobile_base/commands/velocity", Twist, queue_size=1)
 
         rospy.Timer(rospy.Duration(0.1), self.timer_cb)
 
@@ -67,7 +64,7 @@ class Stabilization:
     def gzy_stabilization(self, x, y, theta, x_d, y_d, theta_d):
         e_x = x_d - x
         e_y = y_d - y
-        d = math.sqrt(e_x ** 2 + e_y ** 2)
+        d = math.sqrt(e_x**2 + e_y**2)
 
         beta = math.atan2(y_d - y, x_d - x)
         alpha = beta - theta
@@ -78,11 +75,16 @@ class Stabilization:
 
         return v, w
 
-    def gzy_stabilization_2(self, x, y, theta, x_d, y_d):
+    def gzy_stabilization_2(self, x, y, theta, x_d, y_d, theta_d):
         e_x = x_d - x
         e_y = y_d - y
-        u_x = self.kk * e_x
-        u_y = self.kk * e_y
+        e_theta = theta_d - theta
+
+        u_x = self.kk * (e_x - self.l * e_theta * np.sin(theta))  # todo: still steady error
+        u_y = self.kk * (e_y + self.l * e_theta * np.cos(theta))
+        # info = "(e_x, e_y, e_theta, u_x, u_y) = ({:.2f}, {:.2f}, {:.2f}, {:.2f}, {:.2f})".format(e_x, e_y, e_theta, u_x, u_y)
+        # rospy.logwarn(info)
+
         A = np.array(
             [
                 [np.cos(theta), -self.l * np.sin(theta)],
@@ -90,6 +92,7 @@ class Stabilization:
             ]
         )
         U = np.array([[u_x], [u_y]])
+
         v_w = np.linalg.solve(A, U)
         v = v_w[0]
         w = v_w[1]
@@ -132,21 +135,13 @@ class Stabilization:
 
     def timer_cb(self, data):
         if self.controller == "lpj":
-            v, w = self.lpj_stabilization(
-                self.x, self.y, self.theta, self.x_d, self.y_d
-            )
+            v, w = self.lpj_stabilization(self.x, self.y, self.theta, self.x_d, self.y_d)
         elif self.controller == "guyue":
-            v, w = self.guyue_stabilization(
-                self.x, self.y, self.theta, self.x_d, self.y_d
-            )
+            v, w = self.guyue_stabilization(self.x, self.y, self.theta, self.x_d, self.y_d)
         elif self.controller == "gzy":
-            v, w = self.gzy_stabilization(
-                self.x, self.y, self.theta, self.x_d, self.y_d, self.theta_d
-            )
+            v, w = self.gzy_stabilization(self.x, self.y, self.theta, self.x_d, self.y_d, self.theta_d)
         elif self.controller == "gzy2":
-            v, w = self.gzy_stabilization_2(
-                self.x, self.y, self.theta, self.x_d, self.y_d
-            )
+            v, w = self.gzy_stabilization_2(self.x, self.y, self.theta, self.x_d, self.y_d, self.theta_d)
 
         vel = Twist()
         vel.linear.x = v
@@ -161,13 +156,9 @@ class Stabilization:
         self.x = posistion.x
         self.y = posistion.y
 
-        _, _, self.theta = euler_from_quaternion(
-            [oriention.x, oriention.y, oriention.z, oriention.w]
-        )
+        _, _, self.theta = euler_from_quaternion([oriention.x, oriention.y, oriention.z, oriention.w])
 
-        info = "(self.x, self.y, theta) = ({}, {}, {})".format(
-            self.x, self.y, self.theta
-        )
+        info = "(self.x, self.y, theta) = ({:.2f}, {:.2f}, {:.2f})".format(self.x, self.y, self.theta)
         rospy.loginfo(info)
 
     pass
