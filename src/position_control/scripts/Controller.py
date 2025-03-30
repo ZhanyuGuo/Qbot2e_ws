@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import os
+
 import numpy as np
 import pandas as pd
 import rospy
@@ -16,7 +18,8 @@ class Controller:
         self.k, self.l = 0.5, 0.2
 
         # load desired position from xlsx file
-        xlsx_path = "/home/zhang/qbot_pos_des.xlsx"
+        file_dir = os.path.dirname(__file__)
+        xlsx_path = os.path.join(file_dir, f"qbot_position.xlsx")
         df = pd.read_excel(xlsx_path, sheet_name=self.robot_name)
         self.pos_des_list = df.values.tolist()
 
@@ -76,3 +79,7 @@ class Controller:
             rospy.spin()
         except rospy.ROSInterruptException:
             print("shutting down")
+
+
+if __name__ == "__main__":
+    controller = Controller(0)
